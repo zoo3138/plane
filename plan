@@ -1,0 +1,2183 @@
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+
+import java.awt.*;
+
+//所有游戏元素的父类
+public class GameObj {
+	//元素的图片
+	Image img;
+	//游戏元素的大小
+	int width;
+	int height;
+	//游戏元素的位置
+	int x;
+	int y;
+	//元素的运动速度
+	double speed;
+	//窗口类
+	GameWin frame;
+
+	//set和get方法
+	public Image getImg() {
+		return img;
+	}
+
+	public void setImg(Image img) {
+		this.img = img;
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+	public int getX() {
+		return x;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public int getY() {
+		return y;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
+
+	public double getSpeed() {
+		return speed;
+	}
+
+	public void setSpeed(double speed) {
+		this.speed = speed;
+	}
+
+	public GameWin getFrame() {
+		return frame;
+	}
+
+	public void setFrame(GameWin frame) {
+		this.frame = frame;
+	}
+    //构造方法
+	public GameObj() {
+	}
+
+
+	//更新位置
+	public void updatePosition(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+
+	public GameObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		this.img = img;
+		this.width = width;
+		this.height = height;
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+		this.frame = frame;
+	}
+
+	public GameObj(Image img, int x, int y, double speed) {
+		this.img = img;
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+	}
+
+	public GameObj(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	//绘制元素自身的方法
+	public void paintSelf(Graphics g){
+		g.drawImage(img,x,y,null);
+	}
+	//获取自身矩形的方法，用来进行碰撞检测
+	public Rectangle getRec(){
+		return new Rectangle(x,y,width,height);
+	}
+
+}
+package com.sxt;
+
+import com.sxt.obj.*;
+import com.sxt.utils.GameUtils;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+public class GameWin extends JFrame {
+	//记录游戏状态的变量
+	//0未开始 1游戏中，2暂停，3失败，4通关
+	public static int state = 0;
+	//背景图对象
+	BgObj bgObj = new BgObj(GameUtils.bdImg, 0, -1800, 2);
+	//定义一个图片变量
+	Image offScreenImage = null;
+	//我方飞机的对象
+	PlaneObj planeObj = new PlaneObj(GameUtils.planeImg, 37, 41, 290, 550, 0, this);
+	//本来想吧防护罩当作一种飞机，但是不够灵活
+	//PlaneObj planeObj2 = new PlaneObj(GameUtils.shieldImg, 37, 41, 290, 550, 0, this);
+	 ShieldObj shieldObj;
+
+	//获取我方子弹的对象
+	//ShellObj shellObj=new ShellObj(GameUtils.shellImg,14,29,planeObj.getX(), planeObj.getY(), 5,this);
+	//记录游戏绘制的次数
+	int count=1;
+
+	//获取littleboss1的对象
+	LittleBoss1 littleBoss1=new LittleBoss1(GameUtils.littleboss1Img,172,112,-200,350,3,this);
+	//获取littleboss2的对象
+	LittleBoss2 littleBoss2=new LittleBoss2(GameUtils.littleboss2Img,172,112,300,-150,2,this);
+	//获取敌方boss对象
+	BossObj bossObj=new BossObj(GameUtils.bossImg,240,174,180,-180,3,this);
+	//获取警示标志的对象
+	WaringObj waringObj=new WaringObj(GameUtils.warningImg,599,90,0,350,0,this);
+	//定义一个变量来记录我方飞机的索引
+	public static int planeindex=0;
+	//定义一个变量记录游戏得分
+	public static int score=0;
+
+	//定义我方初始血量，初始为1，为0时结束游戏。然后定义一个随机道具加血用，血量上限是3
+	public static int heard =1;
+
+	/*void createShieldObj() {
+		// 创建ShieldObj对象并添加到游戏元素集合中
+		ShieldObj shieldObj = new ShieldObj(GameUtils.shieldImg, 37, 41, planeObj.getX() , planeObj.getY() , 0, 100, this);
+		GameUtils.gameObjList.add(shieldObj);
+	}*/
+
+	public void launch() {
+		//窗口是否可见
+		this.setVisible(true);
+		//窗口的大小
+		this.setSize(600, 800);
+		//窗口的位置
+		this.setLocationRelativeTo(null);
+		//窗口的标题
+		this.setTitle("20通信牛梓桐");
+		//关闭窗口会自动结束进程
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//将所有要绘制的游戏物体全部放入所有元素集合中进行绘制
+		GameUtils.gameObjList.add(bgObj);
+		GameUtils.gameObjList.add(planeObj);
+
+		planeindex=GameUtils.gameObjList.indexOf(planeObj);//这里拿到了我方飞机的索引值
+
+
+
+		/*if (shieldObj != null) {
+			shieldObj.paintSelf(gImage);
+		}*/
+
+		//鼠标的点击事件
+		this.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getButton() == 1 && state == 0) {//当游戏处于一个未开始的转台下点击才能有反应
+					state = 1;//游戏开始状态
+				}
+			}
+		});
+		//添加键盘监听事件
+		this.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if(e.getKeyCode()==32){
+					if(state==1){
+						state=2;
+					} else if (state==2) {
+						state=1;
+					}
+				}
+			}
+		});
+
+		while (true) {
+			createObj();
+			repaint();
+			try {
+				Thread.sleep(25);//25毫秒
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+	}
+
+	//整个方法是用来批量创建物体
+	void createObj() {
+
+
+
+/*
+		if (planeObj.times == 1 ) {
+			int shieldX = planeObj.getX() - 20;
+			int shieldY = planeObj.getY() - 20;
+			GameUtils.shieldObjList.add(new ShieldObj(GameUtils.shieldImg, 14, 29, shieldX, shieldY , 5, 5,this));
+			GameUtils.gameObjList.add(GameUtils.shieldObjList.get(GameUtils.shieldObjList.size() - 1));
+			GameUtils.shieldObjList.removeAll(GameUtils.removeList);
+
+			isdrawn = true;
+		}*/
+
+
+
+
+		if (count % 15 == 0) {//这里控制子弹产生的速度
+			if (planeObj.times == 0) {//这里使用的是1级子弹
+				GameUtils.shellObjList.add(new ShellObj(GameUtils.shellImg, 14, 29, planeObj.getX() + 17, planeObj.getY() - 20, 5, this));
+				GameUtils.gameObjList.add(GameUtils.shellObjList.get(GameUtils.shellObjList.size() - 1));//添加到所有元素集合中的对象，是新new出来的子弹对象，并不是整个子弹集合
+				GameUtils.shellObjList.add(new ShellObj(GameUtils.shellImg, 14, 29, planeObj.getX() + 7, planeObj.getY() - 20, 5, this));
+				GameUtils.gameObjList.add(GameUtils.shellObjList.get(GameUtils.shellObjList.size() - 1));//添加到所有元素集合中的对象，是新new出来的子弹对象，并不是整个子弹集合
+			}
+			if(planeObj.times==1){//这里使用的是二级子弹,有时候会在界外打死boss吃不满两个buff，所以写了个随机使用子弹
+				GameUtils.doubleShellObjList.add(new DoubleShellObj(GameUtils.doubleShellImg,32,64,planeObj.getX()+5,planeObj.getY()-20,8,this));
+				GameUtils.gameObjList.add(GameUtils.doubleShellObjList.get(GameUtils.doubleShellObjList.size()-1));
+
+
+			}
+			if(planeObj.times==2){//这里使用的是三级子弹
+				GameUtils.tripleShellObjList.add(new TripleShellObj(GameUtils.tripleShellImg,64,100,planeObj.getX()-5,planeObj.getY()-10,15,this));
+				GameUtils.gameObjList.add(GameUtils.tripleShellObjList.get(GameUtils.tripleShellObjList.size()-1));
+			}
+		}
+		//两种敌方飞机
+		if (count % 15 == 0) {//控制敌方小飞机的产生速度
+			GameUtils.enemy1ObjList.add(new Enemy1Obj(GameUtils.enemy1Img, 30, 16, (int) ((Math.random() * 10) * 53), 0, 5, this));
+			GameUtils.gameObjList.add(GameUtils.enemy1ObjList.get(GameUtils.enemy1ObjList.size() - 1));
+		}
+		if(count % 20==0) {
+			if (count % 100 == 0) {
+				GameUtils.enemy2ObjList.add(new Enemy2Obj(GameUtils.enemy2Img, 30, 20, (int) ((Math.random() * 10) * 53), 0, 2, this));
+				GameUtils.gameObjList.add(GameUtils.enemy2ObjList.get(GameUtils.enemy2ObjList.size() - 1));
+			}
+			if(GameUtils.enemy2ObjList.size()>0){
+				int x=(GameUtils.enemy2ObjList.get(GameUtils.enemy2ObjList.size()-1)).getX();
+				int y=(GameUtils.enemy2ObjList.get(GameUtils.enemy2ObjList.size()-1)).getY();
+				GameUtils.enemy2BulletObjList.add(new Enemy2BulletObj(GameUtils.enemy2bulletImg,14,22,x+17,y+=55,5,this));
+				GameUtils.gameObjList.add(GameUtils.enemy2BulletObjList.get(GameUtils.enemy2BulletObjList.size()-1));
+			}
+		}
+		if(count==600&&(!GameUtils.gameObjList.contains(littleBoss2))){
+			GameUtils.gameObjList.add(littleBoss2);
+		}
+		if(count==800&&(!GameUtils.gameObjList.contains(littleBoss1))){
+			GameUtils.gameObjList.add(littleBoss1);
+		}
+		if(count%15==0) {
+			if (GameUtils.gameObjList.contains(littleBoss1)) {
+				GameUtils.littleBoss1BulletList.add(new LittleBoss1Bullet(GameUtils.littleBoss1BulletImg, 42, 39, littleBoss1.getX() + 75, littleBoss1.getY() + 100, 4, this));
+				GameUtils.gameObjList.add(GameUtils.littleBoss1BulletList.get(GameUtils.littleBoss1BulletList.size() - 1));
+			}
+		}
+		if(count%40==0){
+			if(GameUtils.gameObjList.contains(littleBoss2)){
+				GameUtils.littleBoss2BulletList.add(new LittleBoss2Bullet(GameUtils.littleBoss2BulletImg,21,56,littleBoss2.getX()+78,littleBoss2.getY()+100,8,this));
+				GameUtils.gameObjList.add(GameUtils.littleBoss2BulletList.get(GameUtils.littleBoss2BulletList.size()-1));
+			}
+		}
+		if(count==1400&&(!GameUtils.gameObjList.contains(bossObj))){
+			GameUtils.gameObjList.add(bossObj);
+		}
+
+		if(count%20==0) {
+			if (GameUtils.gameObjList.contains(bossObj)) {
+				//敌方1号boss子弹
+				GameUtils.littleBoss1BulletList.add(new LittleBoss1Bullet(GameUtils.littleBoss1BulletImg, 37, 30, bossObj.getX() + 10, bossObj.getY() + 130, 6, this));
+				GameUtils.gameObjList.add(GameUtils.littleBoss1BulletList.get(GameUtils.littleBoss1BulletList.size() - 1));
+				//敌方2号boss的子弹
+				if (count % 40 == 0) {
+					GameUtils.littleBoss2BulletList.add(new LittleBoss2Bullet(GameUtils.littleBoss2BulletImg, 21, 40, bossObj.getX() + 220, bossObj.getY() + 130, 10, this));
+					GameUtils.gameObjList.add(GameUtils.littleBoss2BulletList.get(GameUtils.littleBoss2BulletList.size() - 1));
+				}
+				//boss子弹
+				GameUtils.bossBulletList.add(new BossBullet(GameUtils.bossBulletImg, 51, 52, bossObj.getX() + 70, bossObj.getY() + 100, 9, this));
+				GameUtils.gameObjList.add(GameUtils.bossBulletList.get(GameUtils.bossBulletList.size() - 1));
+			}
+		}
+		if(count==1250&&(!GameUtils.gameObjList.contains(waringObj))){
+			GameUtils.gameObjList.add(waringObj);
+		}
+		if(count==1370){
+			GameUtils.removeList.add(waringObj);
+		}
+
+
+
+
+	}
+
+	@Override
+	public void paint(Graphics g) {
+		//初始化双缓存图片对象
+		if (offScreenImage == null) {
+			offScreenImage = createImage(600, 800);//大小要和游戏窗口大小相同
+		}
+
+		//获取双缓存图片对象的画笔
+		Graphics gImage = offScreenImage.getGraphics();
+		gImage.fillRect(0, 0, 600, 800);
+
+
+	/*// 检查是否需要绘制ShieldObj
+		if (planeObj.times == 1 && !isdrawn) {
+			// 更新防护罩位置为飞机的当前位置
+			shieldObj.updatePosition(planeObj.getX(), planeObj.getY());
+			// 创建并绘制ShieldObj
+			ShieldObj shieldObj = new ShieldObj(GameUtils.shieldImg, 37, 41, planeObj.getX() , planeObj.getY() , 9, 100, this); // 这里的x和y是ShieldObj的位置
+			// 绘制防护罩
+			shieldObj.paintSelf(g);
+
+				// 将isdrawn设置为true，标记已经绘制了防护罩
+				isdrawn = true;
+		}*/
+
+
+		if (state == 0) {
+			gImage.drawImage(GameUtils.bdImg, 0, 0, null);
+			gImage.drawImage(GameUtils.explodeImg, 270, 350, null);
+			gImage.drawImage(GameUtils.planeImg, 280, 470, null);
+			gImage.drawImage(GameUtils.bossImg, 190, 70, null);
+			//绘制游戏开始界面的文字
+			gImage.setColor(Color.orange);
+			gImage.setFont(new Font("微软雅黑", Font.BOLD, 30));
+			gImage.drawString("点击开始游戏！", 190, 450);
+		}
+		if (state == 1) {
+//			bgObj.paintSelf(gImage);
+//			planeObj.paintSelf(gImage);
+//			shellObj.paintSelf(gImage);
+			//将爆炸集合添加到所有元素集合中
+			GameUtils.gameObjList.addAll(GameUtils.explodeObjList);
+
+			//不再单独绘制某个游戏元素，因为所有游戏元素都放入了所有元素集合中，这里只需要将集合中所有元素遍历出来，然后绘制自身即可
+			for (int i = 0; i < GameUtils.gameObjList.size(); i++) {
+				GameUtils.gameObjList.get(i).paintSelf(gImage);
+			}
+			//将要删除元素集合中的集合从所有元素集合中删除
+			GameUtils.gameObjList.removeAll(GameUtils.removeList);
+			count++;
+
+			GameUtils.drawWord(gImage,"当前生命值:"+planeObj.getHealth(),Color.RED,30,10,720);
+		}
+		if(state==2){
+			gImage.drawImage(GameUtils.bdImg,0,0,null);
+			GameUtils.drawWord(gImage,"游戏暂停",Color.YELLOW,30,220,300);
+
+		}
+		if(state==3){
+			gImage.drawImage(GameUtils.bdImg,0,0,null);
+			GameUtils.drawWord(gImage,"菜",Color.RED,150,250,400);
+		}
+		if(state==4){
+			gImage.drawImage(GameUtils.bdImg,0,0,null);
+			GameUtils.drawWord(gImage,"游戏通关",Color.GREEN,30,220,300);
+		}
+		//绘制游戏的积分面板
+		GameUtils.drawWord(gImage,score+"分",Color.green,30,30,100);
+		//将双缓存图片绘制在游戏窗口
+		g.drawImage(offScreenImage, 0, 0, null);
+
+
+		System.out.println(GameUtils.gameObjList.size());
+
+	}
+
+
+
+
+	/*//给一个检测标准
+	boolean isdrawn = false;
+*/
+	public static void main(String[] args) {
+		GameWin gameWin = new GameWin();
+		gameWin.launch();
+	}
+}
+package com.sxt.utils;
+
+import com.sxt.obj.*;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+
+//这个类是游戏元素的父类
+public class GameUtils {
+	//获取背景图片
+	public static Image bdImg= Toolkit.getDefaultToolkit().getImage("imgs/bg.jpg");
+	//获取boss图片
+	public static Image bossImg= Toolkit.getDefaultToolkit().getImage("imgs/boss4.png");
+	//获取爆炸图片
+	public static Image explodeImg= Toolkit.getDefaultToolkit().getImage("imgs/explode/e6.gif");
+	//获取我方飞机图片
+	public static Image planeImg= Toolkit.getDefaultToolkit().getImage("imgs/plane2.png");
+	//获取我方飞机子弹的图片
+	public static Image shellImg= Toolkit.getDefaultToolkit().getImage("imgs/shell.png");
+	//获取敌方小飞机的图片，我设置成陨石了
+	public static Image enemy1Img= Toolkit.getDefaultToolkit().getImage("imgs/enemy0.png");
+	//获取敌方大飞机的图片,原地不动的
+	public static Image enemy2Img= Toolkit.getDefaultToolkit().getImage("imgs/enemy3.png");
+	//获取敌方大飞机子弹的图片
+	public static Image enemy2bulletImg= Toolkit.getDefaultToolkit().getImage("imgs/enemy2bullet.png");
+	//获取敌方小boss1的图片
+	public static Image littleboss1Img= Toolkit.getDefaultToolkit().getImage("imgs/boss1.png");
+	//获取敌方小boss1的图片
+	public static Image littleboss2Img= Toolkit.getDefaultToolkit().getImage("imgs/boss3.png");
+	//获取敌方1号boss子弹的图片
+	public static Image littleBoss1BulletImg= Toolkit.getDefaultToolkit().getImage("imgs/littleboss1bullet.png");
+	//获取敌方2号boss子弹的图片
+	public static Image littleBoss2BulletImg= Toolkit.getDefaultToolkit().getImage("imgs/littleboss2bullet.png");
+	//获取补给的图片
+	public static Image giftImg= Toolkit.getDefaultToolkit().getImage("imgs/gift.png");
+	//获取二级子弹的图片
+	public static Image doubleShellImg= Toolkit.getDefaultToolkit().getImage("imgs/doubleshell.png");
+	//获取三级子弹的图片
+	public static Image tripleShellImg= Toolkit.getDefaultToolkit().getImage("imgs/tribleshell.png");
+	//获取boss子弹的图片
+	public static Image bossBulletImg= Toolkit.getDefaultToolkit().getImage("imgs/bossbullet.png");
+	//获取警示标志的图片
+	public static Image warningImg= Toolkit.getDefaultToolkit().getImage("imgs/warning.gif");
+
+	//防护罩图片
+	public static Image shieldImg= Toolkit.getDefaultToolkit().getImage("imgs/shieldImg.png");
+
+	//血量图片
+	public static Image bloodImg = Toolkit.getDefaultToolkit().getImage("imgs/hero_bloodImg.png");
+
+
+	//创建我方飞机子弹的集合
+	public static List<ShellObj> shellObjList=new ArrayList<>();
+	//创建敌方小飞机的集合
+	public static List<Enemy1Obj> enemy1ObjList=new ArrayList<>();
+	//创建敌方大飞机的集合
+	public static List<Enemy2Obj> enemy2ObjList=new ArrayList<>();
+	//创建敌方大飞机子弹的集合
+	public static List<Enemy2BulletObj> enemy2BulletObjList=new ArrayList<>();
+	//所有元素集合
+	public static List<GameObj> gameObjList=new ArrayList<>();
+	//所有要移除的元素的集合
+	public static List<GameObj> removeList=new ArrayList<>();
+	//爆炸集合
+	public static List<ExplodeObj> explodeObjList=new ArrayList<>();
+	//1号boss子弹的集合
+	public static List<LittleBoss1Bullet> littleBoss1BulletList=new ArrayList<>();
+	//2号boss子弹的集合
+	public static List<LittleBoss2Bullet> littleBoss2BulletList=new ArrayList<>();
+	//补给的集合
+	public static List<GiftObj> giftObjList=new ArrayList<>();
+	//二级子弹的集合
+	public static List<DoubleShellObj> doubleShellObjList=new ArrayList<>();
+	//三级子弹的集合
+	public static List<TripleShellObj> tripleShellObjList=new ArrayList<>();
+	//boss子弹的集合
+	public static List<BossBullet> bossBulletList=new ArrayList<>();
+
+	//防护罩集合
+	public static List<ShieldObj> shieldObjList=new ArrayList<>();
+
+	//血量
+	public static List<BloodOBJ> bloodOBJList=new ArrayList<>();
+
+
+
+	//这个方法是用来绘制文字的
+	public static void drawWord(Graphics gImage,String str,Color color,int size,int x,int y){
+		gImage.setColor(color);
+		gImage.setFont(new Font("仿宋",Font.BOLD,size));
+		gImage.drawString(str,x,y);
+	}
+
+
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+
+import java.awt.*;
+
+public class WaringObj extends GameObj{
+	public WaringObj() {
+		super();
+	}
+
+	public WaringObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public WaringObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public WaringObj(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class TripleShellObj extends GameObj{
+	public TripleShellObj() {
+		super();
+	}
+
+	public TripleShellObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public TripleShellObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public TripleShellObj(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y-=speed;
+		if(y<0){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class ShieldObj extends GameObj {
+    private int health; // 防护罩的生命值
+
+    public ShieldObj(Image img, int width, int height, int x, int y, double speed, int health, GameWin frame) {
+        super(img, width, height, x-19, y-20, speed, frame);
+        this.health = health;
+    }
+
+    public ShieldObj(Image shieldImg, int width, int height, int x, int y, int speed, int health, PlaneObj planeObj) {
+    }
+
+    @Override
+    public void paintSelf(Graphics g) {
+        super.paintSelf(g);
+
+        // 绘制防护罩的生命条
+        g.setColor(Color.WHITE);
+        g.fillRect(x, y - 10, width, 5);
+        g.setColor(Color.GREEN);
+        g.fillRect(x, y - 10, health * width / 100, 5);
+    }
+
+    public void checkCollisionWithBoss() {
+        // 与BossObj的碰撞检测
+        for (BossBullet boss : GameUtils.bossBulletList) {
+            if (this.getRec().intersects(boss.getRec()) && health > 0) {
+                // 防护罩生命减一
+                health--;
+                break; // 只与一个BossObj发生碰撞，避免重复减少生命值
+            }
+        }
+
+    }
+
+
+    @Override
+    public Rectangle getRec() {
+        return super.getRec();
+    }
+
+    public int getHealth() {
+        return health;
+    }
+    public ShieldObj(int x, int y) {
+        super(x, y);
+    }
+    public void setHealth(int health) {
+        this.health = health;
+    }
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class ShellObj extends GameObj{
+	public ShellObj() {
+		super();
+	}
+
+	public ShellObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public ShellObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		//实现子弹的移动，改变子弹的纵坐标
+		y -= speed;
+
+		if(y<0){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
+public class PlaneObj extends GameObj{
+
+	int health=1;
+
+	public int getHealth() {
+		return health;
+	}
+
+	//记录我方飞机碰撞补给的次数
+	public static int times=0;
+	LittleBoss1 littleBoss1=new LittleBoss1();
+	LittleBoss2 littleBoss2=new LittleBoss2();
+
+
+	public PlaneObj() {
+		super();
+	}
+
+	public PlaneObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+		//添加鼠标的移动事件
+		this.frame.addMouseMotionListener(new MouseAdapter() {
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				PlaneObj.super.x=e.getX()-19;
+				PlaneObj.super.y=e.getY()-20;
+			}
+		});
+
+	}
+
+
+
+	public PlaneObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+
+	public static Image shieldImg= Toolkit.getDefaultToolkit().getImage("imgs/shieldImg.gif");
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+
+		if (times == 0 ) {
+
+			// 创建并绘制ShieldObj
+			ShieldObj shieldObj = new ShieldObj(GameUtils.shieldImg, 37, 41, getX() , getY() , 9, 100, this); // 这里的x和y是ShieldObj的位置
+			// 绘制防护罩
+			shieldObj.paintSelf(g);
+		}
+
+		//敌机1和我方子弹碰撞之后，我方health-1，当血量为0的时候，结束
+		for(Enemy1Obj enemy1Obj: GameUtils.enemy1ObjList){
+			if(this.getRec().intersects(enemy1Obj.getRec())&&health>0){
+				enemy1Obj.setX(-100);
+				enemy1Obj.setY(-100);
+				GameUtils.removeList.add(enemy1Obj);
+				health--;
+			} else if (this.getRec().intersects(enemy1Obj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+
+				/*//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);*/
+
+				enemy1Obj.setX(-100);
+				enemy1Obj.setY(-100);
+				GameUtils.removeList.add(enemy1Obj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				//GameWin.score+=5;
+
+				GameWin.state=3;
+			}
+		}
+
+		//敌机2和我方子弹碰撞之后，我方health-1，当血量为0的时候，结束
+		for(Enemy2Obj enemy2Obj: GameUtils.enemy2ObjList){
+			if(this.getRec().intersects(enemy2Obj.getRec())&&health>0){
+				enemy2Obj.setX(-100);
+				enemy2Obj.setY(-100);
+				GameUtils.removeList.add(enemy2Obj);
+				health--;
+			} else if (this.getRec().intersects(enemy2Obj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+
+				enemy2Obj.setX(-100);
+				enemy2Obj.setY(-100);
+				GameUtils.removeList.add(enemy2Obj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+				GameWin.state=3;
+			}
+		}
+
+		//敌机2和我方子弹碰撞之后，我方health-1，当血量为0的时候，结束
+		for(Enemy2BulletObj enemy2BulletObj: GameUtils.enemy2BulletObjList){
+			if(this.getRec().intersects(enemy2BulletObj.getRec())&&health>0){
+				enemy2BulletObj.setX(-100);
+				enemy2BulletObj.setY(-100);
+				GameUtils.removeList.add(enemy2BulletObj);
+				health--;
+			} else if (this.getRec().intersects(enemy2BulletObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+
+				enemy2BulletObj.setX(-100);
+				enemy2BulletObj.setY(-100);
+				GameUtils.removeList.add(enemy2BulletObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+
+		//小boss1子弹和我方子弹碰撞之后，我方health-1，当血量为0的时候，结束
+		for(LittleBoss1Bullet littleBoss1Bullet: GameUtils.littleBoss1BulletList){
+			if(this.getRec().intersects(littleBoss1Bullet.getRec())&&health>0){
+				littleBoss1Bullet.setX(-100);
+				littleBoss1Bullet.setY(-100);
+				GameUtils.removeList.add(littleBoss1Bullet);
+				health--;
+			} else if (this.getRec().intersects(littleBoss1Bullet.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+
+				littleBoss1Bullet.setX(-100);
+				littleBoss1Bullet.setY(-100);
+				GameUtils.removeList.add(littleBoss1Bullet);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+
+		//小boss2子弹和我方子弹碰撞之后，我方health-1，当血量为0的时候，结束
+		for(LittleBoss2Bullet littleBoss2Bullet: GameUtils.littleBoss2BulletList){
+			if(this.getRec().intersects(littleBoss2Bullet.getRec())&&health>0){
+				littleBoss2Bullet.setX(-100);
+				littleBoss2Bullet.setY(-100);
+				GameUtils.removeList.add(littleBoss2Bullet);
+				health--;
+			} else if (this.getRec().intersects(littleBoss2Bullet.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+
+				littleBoss2Bullet.setX(-100);
+				littleBoss2Bullet.setY(-100);
+				GameUtils.removeList.add(littleBoss2Bullet);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+
+
+	/*	//我方飞机与敌方小飞机的碰撞检测，碰撞时候我方飞机和敌方小飞机都会消失
+		for(Enemy1Obj enemy1Obj:GameUtils.enemy1ObjList){
+			if(this.getRec().intersects(enemy1Obj.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//让敌方小飞机消失的处理方法就是改变其坐标，让它消失在游戏窗口中，并不是真正的消失
+				enemy1Obj.setX(-100);
+				enemy1Obj.setY(-100);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(enemy1Obj);
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}*/
+
+
+
+
+
+		//我方飞机与敌方大飞机的碰撞检测，碰撞时候我方飞机和敌方大飞机都会消失
+		for(Enemy2Obj enemy2Obj:GameUtils.enemy2ObjList){
+			if(this.getRec().intersects(enemy2Obj.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//让敌方小飞机消失的处理方法就是改变其坐标，让它消失在游戏窗口中，并不是真正的消失
+				enemy2Obj.setX(-100);
+				enemy2Obj.setY(-100);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(enemy2Obj);
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+		//我方飞机与敌方大飞机子弹的碰撞检测，碰撞时候我方飞机和敌方大飞机子弹都会消失
+		for(Enemy2BulletObj enemy2BulletObj:GameUtils.enemy2BulletObjList){
+			if(this.getRec().intersects(enemy2BulletObj.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//让敌方小飞机消失的处理方法就是改变其坐标，让它消失在游戏窗口中，并不是真正的消失
+				enemy2BulletObj.setX(-100);
+				enemy2BulletObj.setY(-100);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(enemy2BulletObj);
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+		//当敌方boss1和我方飞机碰撞的时候，我方飞机消失，敌方飞机不消失
+		if(this.getRec().intersects(littleBoss1.getRec())){
+			//绘制爆炸
+			ExplodeObj explodeObj=new ExplodeObj(x,y);
+			GameUtils.explodeObjList.add(explodeObj);
+			GameUtils.removeList.add(explodeObj);
+			this.x=-200;
+			this.y=-200;
+			GameUtils.removeList.add(this);
+			GameWin.state=3;
+		}
+		//当敌方boss2和我方飞机碰撞的时候，我方飞机消失，敌方飞机不消失
+		if(this.getRec().intersects(littleBoss2.getRec())){
+			//绘制爆炸
+			ExplodeObj explodeObj=new ExplodeObj(x,y);
+			GameUtils.explodeObjList.add(explodeObj);
+			GameUtils.removeList.add(explodeObj);
+			this.x=-200;
+			this.y=-200;
+			GameUtils.removeList.add(this);
+			GameWin.state=3;
+		}
+		//当我方飞机和敌方1号boss子弹碰撞之后，两者都消失
+		for (LittleBoss1Bullet littleBoss1Bullet:GameUtils.littleBoss1BulletList) {
+			if(this.getRec().intersects(littleBoss1Bullet.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				littleBoss1Bullet.setX(-100);
+				littleBoss1Bullet.setY(-100);
+				GameUtils.removeList.add(littleBoss1Bullet);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+		//当我方飞机和敌方2号boss子弹碰撞之后，两者都消失
+		for (LittleBoss2Bullet littleBoss2Bullet:GameUtils.littleBoss2BulletList) {
+			if(this.getRec().intersects(littleBoss2Bullet.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				littleBoss2Bullet.setX(-100);
+				littleBoss2Bullet.setY(-100);
+				GameUtils.removeList.add(littleBoss2Bullet);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+		//我方飞机碰撞补给之后，补给消失，我方飞机不消失
+		for (GiftObj giftObj: GameUtils.giftObjList) {
+			if(this.getRec().intersects(giftObj.getRec())){
+				giftObj.setX(-100);
+				giftObj.setY(-100);
+				GameUtils.removeList.add(giftObj);
+				times++;
+			}
+		}
+		//我方飞机碰撞boss子弹后，两者都消失
+		for(BossBullet bossBullet:GameUtils.bossBulletList){
+			if(this.getRec().intersects(bossBullet.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				bossBullet.setX(-100);
+				bossBullet.setY(-100);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(bossBullet);
+				GameUtils.removeList.add(this);
+				GameWin.state=3;
+			}
+		}
+
+
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class LittleBoss2Bullet extends GameObj{
+	int health=2;
+	public LittleBoss2Bullet() {
+		super();
+	}
+
+	public LittleBoss2Bullet(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public LittleBoss2Bullet(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public LittleBoss2Bullet(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		//实现追踪功能
+		this.y+=speed;
+		this.x-=(this.x-GameUtils.gameObjList.get(GameWin.planeindex).getX())/30;
+
+		//敌方2号boss子弹和我方子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(ShellObj shellObj: GameUtils.shellObjList){
+			if(this.getRec().intersects(shellObj.getRec())&&health>0){
+				shellObj.setX(-100);
+				shellObj.setX(-100);
+				GameUtils.removeList.add(shellObj);
+				health--;
+			} else if (this.getRec().intersects(shellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				shellObj.setX(-100);
+				shellObj.setX(-100);
+				GameUtils.removeList.add(shellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=3;
+			}
+		}
+		//敌方2号boss子弹和我方二级子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(DoubleShellObj doubleshellObj: GameUtils.doubleShellObjList){
+			if(this.getRec().intersects(doubleshellObj.getRec())&&health>0){
+				doubleshellObj.setX(-100);
+				doubleshellObj.setX(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				health-=3;
+			} else if (this.getRec().intersects(doubleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				doubleshellObj.setX(-100);
+				doubleshellObj.setX(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=3;
+			}
+		}
+		//敌方2号boss子弹和我方三级子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(TripleShellObj tripleshellObj: GameUtils.tripleShellObjList){
+			if(this.getRec().intersects(tripleshellObj.getRec())&&health>0){
+				tripleshellObj.setX(-100);
+				tripleshellObj.setX(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				health-=5;
+			} else if (this.getRec().intersects(tripleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				tripleshellObj.setX(-100);
+				tripleshellObj.setX(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=3;
+			}
+		}
+		//越界判断
+		if(this.y>800){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class   LittleBoss2 extends GameObj{
+	int health=10;
+	public LittleBoss2() {
+		super();
+	}
+
+	public LittleBoss2(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public LittleBoss2(Image img, int x,  int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public LittleBoss2(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		if(y<150){
+			y+=2;
+		}else{
+			x+=speed;
+			if(x>400||x<10){
+				speed=-speed;
+			}
+		}
+
+		//敌方1号boss和我方子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(ShellObj shellObj: GameUtils.shellObjList){
+			if(this.getRec().intersects(shellObj.getRec())&&health>0){
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				health--;
+			} else if (this.getRec().intersects(shellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+			}
+		}
+		//敌方2号boss和我方二级子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(DoubleShellObj doubleshellObj: GameUtils.doubleShellObjList){
+			if(this.getRec().intersects(doubleshellObj.getRec())&&health>0){
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				health-=3;
+			} else if (this.getRec().intersects(doubleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+			}
+		}
+		//敌方2号boss和我方三级子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(TripleShellObj tripleshellObj: GameUtils.tripleShellObjList){
+			if(this.getRec().intersects(tripleshellObj.getRec())&&health>0){
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				health-=5;
+			} else if (this.getRec().intersects(tripleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+			}
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class LittleBoss1Bullet extends GameObj{
+	public LittleBoss1Bullet() {
+		super();
+	}
+
+	public LittleBoss1Bullet(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public LittleBoss1Bullet(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public LittleBoss1Bullet(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y+=speed;
+		//越界判断
+		if(this.y>800){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class LittleBoss1 extends GameObj{
+	int health=10;
+	public LittleBoss1() {
+		super();
+	}
+
+	public LittleBoss1(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public LittleBoss1(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public LittleBoss1(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		x+=speed;
+		if(x>400){
+			speed=-1;
+		}
+		//敌方1号boss和我方子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(ShellObj shellObj: GameUtils.shellObjList){
+			if(this.getRec().intersects(shellObj.getRec())&&health>0){
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				health--;
+			} else if (this.getRec().intersects(shellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+			}
+		}
+		//敌方1号boss和我方二级子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(DoubleShellObj doubleshellObj: GameUtils.doubleShellObjList){
+			if(this.getRec().intersects(doubleshellObj.getRec())&&health>0){
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				health-=3;
+			} else if (this.getRec().intersects(doubleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+			}
+		}
+		//敌方1号boss和我方三级子弹碰撞之后，我方子弹消失，当1号boss血量为0的时候，1号boss也会消失，否则不会消失
+		for(TripleShellObj tripleshellObj: GameUtils.tripleShellObjList){
+			if(this.getRec().intersects(tripleshellObj.getRec())&&health>0){
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				health-=5;
+			} else if (this.getRec().intersects(tripleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				//当敌方小boss被击毁的时候才会出现补给品
+				GiftObj giftObj=new GiftObj(this.x,this.y);
+				GameUtils.giftObjList.add(giftObj);
+				GameUtils.gameObjList.addAll(GameUtils.giftObjList);
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.score+=5;
+			}
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class GiftObj extends GameObj{
+	public GiftObj() {
+		super();
+	}
+
+	public GiftObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public GiftObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public GiftObj(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.img= GameUtils.giftImg;
+		super.width=64;
+		super.height=62;
+		super.paintSelf(g);
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+
+import java.awt.*;
+
+//所有游戏元素的父类
+public class GameObj {
+	//元素的图片
+	Image img;
+	//游戏元素的大小
+	int width;
+	int height;
+	//游戏元素的位置
+	int x;
+	int y;
+	//元素的运动速度
+	double speed;
+	//窗口类
+	GameWin frame;
+
+	//set和get方法
+	public Image getImg() {
+		return img;
+	}
+
+	public void setImg(Image img) {
+		this.img = img;
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+	public int getX() {
+		return x;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public int getY() {
+		return y;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
+
+	public double getSpeed() {
+		return speed;
+	}
+
+	public void setSpeed(double speed) {
+		this.speed = speed;
+	}
+
+	public GameWin getFrame() {
+		return frame;
+	}
+
+	public void setFrame(GameWin frame) {
+		this.frame = frame;
+	}
+    //构造方法
+	public GameObj() {
+	}
+
+
+	//更新位置
+	public void updatePosition(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+
+	public GameObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		this.img = img;
+		this.width = width;
+		this.height = height;
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+		this.frame = frame;
+	}
+
+	public GameObj(Image img, int x, int y, double speed) {
+		this.img = img;
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+	}
+
+	public GameObj(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	//绘制元素自身的方法
+	public void paintSelf(Graphics g){
+		g.drawImage(img,x,y,null);
+	}
+	//获取自身矩形的方法，用来进行碰撞检测
+	public Rectangle getRec(){
+		return new Rectangle(x,y,width,height);
+	}
+
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+
+import java.awt.*;
+
+//所有游戏元素的父类
+public class GameObj {
+	//元素的图片
+	Image img;
+	//游戏元素的大小
+	int width;
+	int height;
+	//游戏元素的位置
+	int x;
+	int y;
+	//元素的运动速度
+	double speed;
+	//窗口类
+	GameWin frame;
+
+	//set和get方法
+	public Image getImg() {
+		return img;
+	}
+
+	public void setImg(Image img) {
+		this.img = img;
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+	public int getX() {
+		return x;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public int getY() {
+		return y;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
+
+	public double getSpeed() {
+		return speed;
+	}
+
+	public void setSpeed(double speed) {
+		this.speed = speed;
+	}
+
+	public GameWin getFrame() {
+		return frame;
+	}
+
+	public void setFrame(GameWin frame) {
+		this.frame = frame;
+	}
+    //构造方法
+	public GameObj() {
+	}
+
+
+	//更新位置
+	public void updatePosition(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+
+	public GameObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		this.img = img;
+		this.width = width;
+		this.height = height;
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+		this.frame = frame;
+	}
+
+	public GameObj(Image img, int x, int y, double speed) {
+		this.img = img;
+		this.x = x;
+		this.y = y;
+		this.speed = speed;
+	}
+
+	public GameObj(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	//绘制元素自身的方法
+	public void paintSelf(Graphics g){
+		g.drawImage(img,x,y,null);
+	}
+	//获取自身矩形的方法，用来进行碰撞检测
+	public Rectangle getRec(){
+		return new Rectangle(x,y,width,height);
+	}
+
+}
+package com.sxt.obj;
+
+import java.awt.*;
+
+public class ExplodeObj extends GameObj{
+	static Image[] explodePic=new Image[16];
+	int explodeCount=0;
+	static {
+		for(int i=0;i< explodePic.length;i++){
+			explodePic[i]=Toolkit.getDefaultToolkit().getImage("imgs/explode/e"+(i+1)+".gif");
+		}
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		if(explodeCount<16){
+			super.img=explodePic[explodeCount];
+			super.paintSelf(g);
+			explodeCount++;
+		}
+	}
+
+	public ExplodeObj(int x, int y) {
+		super(x, y);
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class Enemy2Obj extends GameObj{
+	//设置血量属性
+	int health=3;
+
+	public Enemy2Obj() {
+		super();
+	}
+
+	public Enemy2Obj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public Enemy2Obj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y+=speed;
+		//一级子弹和敌方大飞机的碰撞检测
+		for(ShellObj shellObj: GameUtils.shellObjList){
+			if(this.getRec().intersects(shellObj.getRec())&&health>0){
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				health--;
+			} else if (this.getRec().intersects(shellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				this.x=-100;
+				this.y=-100;
+				GameUtils.removeList.add(this);
+				GameWin.score+=2;
+			}
+		}
+		//二级子弹和敌方大飞机的碰撞检测
+		for(DoubleShellObj doubleshellObj: GameUtils.doubleShellObjList){
+			if(this.getRec().intersects(doubleshellObj.getRec())&&health>0){
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				health-=3;
+			} else if (this.getRec().intersects(doubleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				this.x=-100;
+				this.y=-100;
+				GameUtils.removeList.add(this);
+				GameWin.score+=2;
+			}
+		}
+		//三级子弹和敌方大飞机的碰撞检测
+		for(TripleShellObj tripleshellObj: GameUtils.tripleShellObjList){
+			if(this.getRec().intersects(tripleshellObj.getRec())&&health>0){
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				health-=5;
+			} else if (this.getRec().intersects(tripleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				this.x=-100;
+				this.y=-100;
+				GameUtils.removeList.add(this);
+				GameWin.score+=2;
+			}
+		}
+		//越界判断
+		if(this.y>800){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class Enemy2BulletObj extends GameObj{
+	public Enemy2BulletObj() {
+		super();
+	}
+
+	public Enemy2BulletObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public Enemy2BulletObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y+=speed;
+		//越界判断
+		if(this.y>800){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class Enemy1Obj extends GameObj{
+	public Enemy1Obj() {
+		super();
+	}
+
+	public Enemy1Obj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public Enemy1Obj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y+=speed;
+		//一级子弹和敌方小飞机的碰撞
+		for(ShellObj shellObj: GameUtils.shellObjList){
+			if(this.getRec().intersects(shellObj.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				this.setX(-200);
+				this.setY(-200);
+				GameUtils.removeList.add(shellObj);
+				GameUtils.removeList.add(this);
+				GameWin.score+=1;
+			}
+		}
+		//二级子弹和敌方小飞机的碰撞
+		for(DoubleShellObj doubleshellObj: GameUtils.doubleShellObjList){
+			if(this.getRec().intersects(doubleshellObj.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				this.setX(-200);
+				this.setY(-200);
+				GameUtils.removeList.add(doubleshellObj);
+				GameUtils.removeList.add(this);
+				GameWin.score+=1;
+			}
+		}
+		//三级子弹和敌方小飞机的碰撞
+		for(TripleShellObj tripleshellObj: GameUtils.tripleShellObjList){
+			if(this.getRec().intersects(tripleshellObj.getRec())){
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				this.setX(-200);
+				this.setY(-200);
+				GameUtils.removeList.add(tripleshellObj);
+				GameUtils.removeList.add(this);
+				GameWin.score+=1;
+			}
+		}
+		//越界判断
+		if(this.y>800){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class DoubleShellObj extends GameObj{
+	public DoubleShellObj() {
+		super();
+	}
+
+	public DoubleShellObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public DoubleShellObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public DoubleShellObj(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y-=speed;
+		if(y<0){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class BossObj extends GameObj{
+	int health=300;
+	public BossObj() {
+		super();
+	}
+
+	public BossObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public BossObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public BossObj(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		if(y<40){
+			y+=speed;
+		}else {
+			x+=speed;
+			if(x<0||x>360){
+				speed=-speed;
+			}
+		}
+		//首先是我方一级子弹和boss进行碰撞检测
+		for(ShellObj shellObj: GameUtils.shellObjList){
+			if(this.getRec().intersects(shellObj.getRec())&&health>0){
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				health--;
+			} else if (this.getRec().intersects(shellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				shellObj.setX(-100);
+				shellObj.setY(-100);
+				GameUtils.removeList.add(shellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=4;
+				GameWin.score+=10;
+			}
+		}
+		//首先是我方二级子弹和boss进行碰撞检测
+		for(DoubleShellObj doubleshellObj: GameUtils.doubleShellObjList){
+			if(this.getRec().intersects(doubleshellObj.getRec())&&health>0){
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				health-=3;
+			} else if (this.getRec().intersects(doubleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				doubleshellObj.setX(-100);
+				doubleshellObj.setY(-100);
+				GameUtils.removeList.add(doubleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=4;
+				GameWin.score+=10;
+			}
+		}
+		//首先是我方三级子弹和boss进行碰撞检测
+		for(TripleShellObj tripleshellObj: GameUtils.tripleShellObjList){
+			if(this.getRec().intersects(tripleshellObj.getRec())&&health>0){
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				health-=5;
+			} else if (this.getRec().intersects(tripleshellObj.getRec())&&health<=0) {
+				//绘制爆炸
+				ExplodeObj explodeObj=new ExplodeObj(x,y);
+				GameUtils.explodeObjList.add(explodeObj);
+				GameUtils.removeList.add(explodeObj);
+				tripleshellObj.setX(-100);
+				tripleshellObj.setY(-100);
+				GameUtils.removeList.add(tripleshellObj);
+				this.x=-200;
+				this.y=-200;
+				GameUtils.removeList.add(this);
+				GameWin.state=4;
+				GameWin.score+=10;
+			}
+		}
+		//白色矩形
+		g.setColor(Color.WHITE);
+		g.fillRect(200,40,200,10);
+		//红色矩形
+		g.setColor(Color.RED);
+		g.fillRect(200,40,health*200/30,10);
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+import com.sxt.utils.GameUtils;
+
+import java.awt.*;
+
+public class BossBullet extends GameObj{
+	public BossBullet() {
+		super();
+	}
+
+	public BossBullet(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public BossBullet(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	public BossBullet(int x, int y) {
+		super(x, y);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y+=speed;
+		//越界判断
+		if(this.y>800){
+			GameUtils.removeList.add(this);
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+
+import java.awt.*;
+
+public class BloodOBJ extends GiftObj {
+    @Override
+    public void paintSelf(Graphics g) {
+        super.paintSelf(g);
+    }
+
+    public BloodOBJ() {
+    }
+
+    public BloodOBJ(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+        super(img, width, height, x, y, speed, frame);
+    }
+
+    public BloodOBJ(Image img, int x, int y, double speed) {
+        super(img, x, y, speed);
+    }
+
+    public BloodOBJ(int x, int y) {
+        super(x, y);
+    }
+}
+package com.sxt.obj;
+
+import com.sxt.GameWin;
+
+import java.awt.*;
+
+public class BgObj extends GameObj{
+	public BgObj() {
+		super();
+	}
+
+	public BgObj(Image img, int width, int height, int x, int y, double speed, GameWin frame) {
+		super(img, width, height, x, y, speed, frame);
+	}
+
+	public BgObj(Image img, int x, int y, double speed) {
+		super(img, x, y, speed);
+	}
+
+	@Override
+	public void paintSelf(Graphics g) {
+		super.paintSelf(g);
+		y+=speed;
+		if(y>=0){
+			y=-1800;
+		}
+	}
+
+	@Override
+	public Rectangle getRec() {
+		return super.getRec();
+	}
+}
